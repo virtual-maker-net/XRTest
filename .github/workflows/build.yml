@@ -18,7 +18,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [buildalon-windows]
+        os: [windows-latest]
         build-target: [WSAPlayer]
     steps:
       - uses: actions/checkout@v4
