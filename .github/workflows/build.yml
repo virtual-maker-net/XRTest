@@ -28,8 +28,6 @@ jobs:
         build-target: [WSAPlayer]
     steps:
       - uses: actions/checkout@v4
-        with:
-          clean: ${{ github.event.inputs.clean == 'true' }}
       - uses: buildalon/unity-setup@v1
         with:
           version-file: ${{ github.workspace }}/ProjectSettings/ProjectVersion.txt
