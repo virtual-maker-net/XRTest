@@ -1,0 +1,64 @@
+name: build
+on:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+    branches:
+      - '*'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    env:
+      UNITY_PROJECT_PATH: '' # set by unity-setup action
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [buildalon-windows]
+        build-target: [WSAPlayer]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: buildalon/unity-setup@v1
+        with:
+          version-file: ${{ github.workspace }}/ProjectSettings/ProjectVersion.txt
+          build-targets: ${{ matrix.build-target }}
+      - uses: buildalon/activate-unity-license@v1
+        with:
+          license: 'Personal'
+          username: ${{ secrets.UNITY_USERNAME }}
+          password: ${{ secrets.UNITY_PASSWORD }}
+      - uses: buildalon/unity-action@v1
+        name: '${{ matrix.build-target }}-Validate'
+        with:
+          build-target: ${{ matrix.build-target }}
+          log-name: '${{ matrix.build-target }}-Validate'
+          args: '-quit -nographics -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.ValidateProject -importTMProEssentialsAsset'
+      - uses: buildalon/unity-action@v1
+        name: '${{ matrix.build-target }}-Build'
+        with:
+          build-target: ${{ matrix.build-target }}
+          log-name: '${{ matrix.build-target }}-Build'
+          args: '-quit -nographics -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.StartCommandLineBuild -sceneList Assets/Scenes/SampleScene.unity -arch ARM64'
+      - uses: microsoft/setup-msbuild@v2
+      - uses: buildalon/unity-uwp-builder@development
+        id: uwp-build
+        with:
+          project-path: ${{ env.UNITY_PROJECT_PATH }}/Builds/WSAPlayer
+          package-type: 'upload'
+      - name: print outputs
+        shell: bash
+        run: |
+          echo "Executable: ${{ steps.uwp-build.outputs.executable }}"
+          echo "Output Directory: ${{ steps.uwp-build.outputs.output-directory }}"
+          ls -R "${{ steps.uwp-build.outputs.output-directory }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          retention-days: 1
+          name: ${{ matrix.build-target }}.${{ github.run_number }}
+          path: |
+            ${{ github.workspace }}/**/*.log
+            ${{ steps.uwp-build.outputs.output-directory }}
