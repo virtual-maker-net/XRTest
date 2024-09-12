@@ -8,6 +8,12 @@ on:
       - '*'
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+      clean:
+        description: 'Clean the project before building'
+        required: false
+        default: false
+        type: 'boolean'
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -22,6 +28,8 @@ jobs:
         build-target: [WSAPlayer]
     steps:
       - uses: actions/checkout@v4
+        with:
+          clean: ${{ github.event.inputs.clean == 'true' }}
       - uses: buildalon/unity-setup@v1
         with:
           version-file: ${{ github.workspace }}/ProjectSettings/ProjectVersion.txt
@@ -51,7 +59,7 @@ jobs:
         id: uwp-build
         with:
           project-path: ${{ env.UNITY_PROJECT_PATH }}/Builds/WSAPlayer
-          package-type: 'upload'
+          package-type: 'sideload'
       - name: print outputs
         shell: bash
         run: |
